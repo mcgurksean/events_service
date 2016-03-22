@@ -7,6 +7,7 @@ import(
 	"encoding/csv"
 	"os"
 	"time"
+	"strings"
 )
 
 type Event struct{
@@ -49,44 +50,43 @@ func writeEvent(event Event){
 
 //Handle requests to /events/count
 func aggregateEventsGet(rw http.ResponseWriter, request *http.Request){
-
-	fromTime := getTimeFromQueryString(request.URL.RawQuery[5:30])
-	toTime := getTimeFromQueryString(request.URL.RawQuery[34:len(request.URL.RawQuery)])
-
+	fromTime := getTimeFromQueryString(request.URL.RawQuery, "from")
+	toTime := getTimeFromQueryString(request.URL.RawQuery, "to")
 	var allEvents = getAllEvents()
-
 	eventNames := make(map[string]struct{})
 	for _, event := range allEvents {
 		eventNames[event.Name]=struct{}{}
 	}
-
 	eventMap := make(map[string]int)
-
 	for eventName := range eventNames{
 		eventCount := 0
 		for _, event := range allEvents{
-			eventTime, _ := time.Parse(dateTimeLayout, event.Timestamp)
+			eventTime, err := time.Parse(dateTimeLayout, event.Timestamp)
+			if err != nil{
+				fmt.Println("Error parsing event date", err)
+				return
+			}
 			if (eventName == event.Name && (eventTime.After(fromTime) && eventTime.Before(toTime))) {
 				eventCount++
 			}
 		}
 		eventMap[eventName]=eventCount
-	}
-	
+	}	
 	jsonEventCount, err := json.Marshal(eventMap)
 	if err != nil {
 	    fmt.Println("Error encoding JSON", err)
 	    return
 	}
 	fmt.Println(string(jsonEventCount))
-
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(jsonEventCount)
 }
 
 //Using the date format specified, parse the time string
-func getTimeFromQueryString(queryString string) time.Time{
-	parsedTime, err := time.Parse(dateTimeLayout, queryString)
+func getTimeFromQueryString(queryString string, parameterName string) time.Time{
+	startIndex := (strings.Index(queryString, parameterName))+len(parameterName)+1
+	endIndex := startIndex + len(dateTimeLayout)
+	parsedTime, err := time.Parse(dateTimeLayout, queryString[startIndex:endIndex])
 	if err != nil {
 	    fmt.Println("Error parsing date string", err)
 	}
@@ -116,7 +116,15 @@ func getAllEvents() []Event{
 	return allEvents
 }
 
+func returnCode500(errorMessage string) http.ResponseWriter {
+	var w http.ResponseWriter
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte(errorMessage))
+	return w
+}
+
 func main(){
+	fmt.Println("Events service started...")
 	http.HandleFunc("/events/count", aggregateEventsGet)
 	http.HandleFunc("/events", recordEventsPost)
 	http.ListenAndServe(":8080", nil)
