@@ -2,9 +2,9 @@
 
 I have created an events service that allows the user to:
 
-● Send an event in the form of an HTTP POST that takes a name, and a timestamp 
+* Send an event in the form of an HTTP POST that takes a name, and a timestamp 
 
-● Query the events in a time range returning the name of the event, and the count of events in the time range 
+* Query the events in a time range returning the name of the event, and the count of events in the time range 
 
 An example API Recording an event:
 
