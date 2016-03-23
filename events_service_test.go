@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"fmt"
 	"bytes"
-	"strings"
 	"encoding/json"
 )
 
@@ -29,7 +28,7 @@ func TestWritingToFile(t *testing.T) {
 
 func TestStatusCodeReturned(t *testing.T) {
 	resp := CreateNewEvent("checkout", "2015-02-11T15:01:00+00:00")
-	if strings.Contains(resp.Status, "200") == false {
+	if resp.StatusCode != 200 {
 		t.Error("No response code of 200 returned, instead got", resp.Status)
 	}
 }
