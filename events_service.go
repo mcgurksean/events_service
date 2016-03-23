@@ -24,36 +24,31 @@ func recordEventsPost(rw http.ResponseWriter, request *http.Request){
 	var event Event
 	err := decoder.Decode(&event)
 	if err != nil{
-		http.Error(rw, "Error decoding event: "+err.Error(), 500)
-		return
+		http.Error(rw, "Error decoding event: " +err.Error(), 500)
 	} else {
-		writeEvent(event)
+		err := writeEvent(event)
+		if err != nil{
+			http.Error(rw, "Error writing events to file: " +err.Error(), 500)
+		}
 	}
 }
 
 //write event to a file - could alternatively be implemented as a database write operation
-func writeEvent(event Event){
+func writeEvent(event Event) error{
 	csvFile, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil{
-		fmt.Println("Error opening 'events' file", err)
-		return	
-	}
 	defer csvFile.Close()
 	writer := csv.NewWriter(csvFile)
 	eventString := []string{event.Name, event.Timestamp}
 	err = writer.Write(eventString)
-	if err != nil{
-		fmt.Println("Error writing event to 'events' file", err)
-		return
-	}
 	writer.Flush()	
+	return err
 }
 
 //Handle requests to /events/count
 func aggregateEventsGet(rw http.ResponseWriter, request *http.Request){
-	fromTime := getTimeFromQueryString(request.URL.RawQuery, "from")
-	toTime := getTimeFromQueryString(request.URL.RawQuery, "to")
-	var allEvents = getAllEvents()
+	fromTime, err := getTimeFromQueryString(request.URL.RawQuery, "from")
+	toTime, err := getTimeFromQueryString(request.URL.RawQuery, "to")
+	allEvents, err := getAllEvents()
 	eventNames := make(map[string]struct{})
 	for _, event := range allEvents {
 		eventNames[event.Name]=struct{}{}
@@ -84,29 +79,23 @@ func aggregateEventsGet(rw http.ResponseWriter, request *http.Request){
 }
 
 //Using the date format specified, parse the time string
-func getTimeFromQueryString(queryString string, parameterName string) time.Time{
+func getTimeFromQueryString(queryString string, parameterName string) (time.Time, error) {
 	startIndex := (strings.Index(queryString, parameterName))+len(parameterName)+1
 	endIndex := startIndex + len(dateTimeLayout)
 	parsedTime, err := time.Parse(dateTimeLayout, queryString[startIndex:endIndex])
 	if err != nil {
 	    fmt.Println("Error parsing date string", err)
 	}
-	return parsedTime
+	return parsedTime, err
 }
 
 //return a slice of all the events
-func getAllEvents() []Event{
+func getAllEvents() ([]Event, error) {
 	csvFile, err := os.Open(filename)
-	if err != nil {
-	    fmt.Println("Error opening 'events' file", err)
-	}
 	defer csvFile.Close()
 	reader := csv.NewReader(csvFile)
 	reader.FieldsPerRecord = -1
 	csvData, err := reader.ReadAll()
-	if err != nil {
-	    fmt.Println("Error reading 'events' file", err)
-	}
 	var event Event
 	var allEvents []Event
 	for _, each := range csvData {
@@ -114,7 +103,7 @@ func getAllEvents() []Event{
 		event.Timestamp = each[1]
 		allEvents = append(allEvents, event)
 	}
-	return allEvents
+	return allEvents, err
 }
 
 func main(){
