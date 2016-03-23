@@ -48,14 +48,14 @@ In order to test the events service, run the following command:
 `go test events_service_test.go`
 
 
-## Build the Docker Image with Dockerfile
+## Building the Docker Image with Dockerfile
 
 To build the Docker image by reading instructions from Dockerfile, run the following command:
 
 `sudo docker build -t golang-docker .`
 
 
-## Run the Docker Image
+## Running the Docker Image
 
 To run the Docker image by publishing an external port (e.g. 3000) to the docker container’s port 8080, run the following command:
 
