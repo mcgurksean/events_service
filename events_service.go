@@ -24,17 +24,13 @@ func recordEventsPost(rw http.ResponseWriter, request *http.Request){
 	var event Event
 	err := decoder.Decode(&event)
 	if err != nil{
-		fmt.Println("Error writing event to 'events' file", err)
+		fmt.Println("Error decoding event from querystring", err)
 		return
+		//	rw = returnCode500("Error decoding event from querystring", err)
+		//}
 	} else {
 		writeEvent(event)
 	}
-
-
-
-	//	rw = returnCode500("Error decoding event from querystring", err)
-	//}
-	
 }
 
 //write event to a file - could alternatively be implemented as a database write operation
