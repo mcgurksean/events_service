@@ -24,10 +24,8 @@ func recordEventsPost(rw http.ResponseWriter, request *http.Request){
 	var event Event
 	err := decoder.Decode(&event)
 	if err != nil{
-		fmt.Println("Error decoding event from querystring", err)
+		http.Error(rw, "Error decoding event: "+err.Error(), 500)
 		return
-		//	rw = returnCode500("Error decoding event from querystring", err)
-		//}
 	} else {
 		writeEvent(event)
 	}
@@ -38,7 +36,7 @@ func writeEvent(event Event){
 	csvFile, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil{
 		fmt.Println("Error opening 'events' file", err)
-		return
+		return	
 	}
 	defer csvFile.Close()
 	writer := csv.NewWriter(csvFile)
@@ -66,7 +64,7 @@ func aggregateEventsGet(rw http.ResponseWriter, request *http.Request){
 		for _, event := range allEvents{
 			eventTime, err := time.Parse(dateTimeLayout, event.Timestamp)
 			if err != nil{
-				fmt.Println("Error parsing event date", err)
+				http.Error(rw, "Error parsing event date: "+err.Error(), 500)
 				return
 			}
 			if (eventName == event.Name && (eventTime.After(fromTime) && eventTime.Before(toTime))) {
@@ -77,7 +75,7 @@ func aggregateEventsGet(rw http.ResponseWriter, request *http.Request){
 	}	
 	jsonEventCount, err := json.Marshal(eventMap)
 	if err != nil {
-	    fmt.Println("Error encoding JSON", err)
+		http.Error(rw, "Error encoding JSON: "+err.Error(), 500)
 	    return
 	}
 	fmt.Println(string(jsonEventCount))
@@ -117,13 +115,6 @@ func getAllEvents() []Event{
 		allEvents = append(allEvents, event)
 	}
 	return allEvents
-}
-
-func returnCode500(errorMessage string, errorThrown error) http.ResponseWriter {
-	var w http.ResponseWriter
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(errorMessage))
-	return w
 }
 
 func main(){
